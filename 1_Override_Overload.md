@@ -163,19 +163,19 @@
 
 <p>
   더욱 자세히 알아보기 위해 모든 객체의 상위 객체인 <code>Object</code>를 사용한 예제를 하나 생각해보자.
+</p>
 <pre>
-    public class Many {
+  public class Many {
     public static void main(String[] args) {
-        List<Object> many = new ArrayList<>();
+        List&lt;Object&gt; many = new ArrayList&lt;&gt;();
         many.add(1);
         many.add("하나");
         many.add(1.234);
         many.add('a');
         many.add(false);
     }
-  }
-</pre>
-
+  }</pre>
+<p>
   Object 객체타입 리스트를 만들어 정수, 실수, 문자, 문자열, 논리형 타입을 모두 추가할 수 있다. 또한 우리가 만든 참조형 객체 타입들도 모두 담아낼 수 있다. 
   물론 위와 같이 Object 객체에 통해 모든 기본형 타입과 String 문자열을 받아내는 방식은 한 가지 타입만 받아야 할 때 다른 타입도 무조건 받을 수 있어 추후 오류를 발생시킬 수도 있다.
   <br>
