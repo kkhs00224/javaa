@@ -1,6 +1,9 @@
 <h2>오버라이드(Override)와 오버로딩(Overloading) 그리고 상속(Inheritance)과 다형성(Polymorphism)</h2>
 <hr>
 <h6 style="color:gray;">❗해당 글은 제가 공부했던 기억(도서 및 포스트 등)과 개인적 의견이 섞여 작성되었기 때문에 틀리거나 제대로 설명하지 못한 부분이 있을 수 있습니다. 의견 남겨주시면 감사히 여기며 수정하도록 하겠습니다.❗</h6>
+
+▶️ [다음글. 가비지 컬렉션(Garbage Collection)과 JVM(Java Virtual Machine)](https://github.com/kkhs00224/mystudy/blob/main/java/2_Garbage_Collection.md)
+
 <h3>1. 오버라이딩(Override)</h3>
 <p>자바 공부를 하면서 헷갈릴 수 있는 두 개의 용어에 대해 복습해본다.</p>
 <p>
