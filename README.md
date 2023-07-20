@@ -5,7 +5,8 @@
 - - -
 
 ##  자바
-- [1.오버라이드와 오버로딩](https://github.com/kkhs00224/mystudy/blob/main/java/1_Override_Overload.md)
+- [1.오버라이드\(Override\)와 오버로딩\(Overloading\)](https://github.com/kkhs00224/mystudy/blob/main/java/1_Override_Overload.md)
+- [2. 가비지 컬렉션\(Garbage Collection\)](https://github.com/kkhs00224/mystudy/blob/main/java/2_Garbage_Collection.md)
 
 
 ## MySQL
