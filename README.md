@@ -10,4 +10,4 @@
 
 
 ## MySQL
-- [1.인덱스](https://github.com/kkhs00224/mystudy/blob/main/mysql/1_index.md)
+- [1.인덱스\(Index\)](https://github.com/kkhs00224/mystudy/blob/main/mysql/1_index.md)
