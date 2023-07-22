@@ -37,12 +37,42 @@
 이런 시행착오를 겪으며 자동 메모리 관리 기술이 계속 발전해왔고, 현재엔 자바를 포함한 많은 프로그래밍 언어가 가비지 컬렉션으로 메모리를 자동으로 관리한다.
 
 ## 2. 자바(Java)의 메모리 관리
-- 자바는 JVM(Java Virtual Machine)의 일부인 가비지 콜렉터(Garbage Collector)에 의해 처리된다.
+- 자바는 JVM(Java Virtual Machine)의 일부인 가비지 컬렉터(Garbage Collector)에 의해 처리된다.
   가비지 콜렉터를 통해 주기적으로 가비지를 모으고, 더 이상 도달할 수 없는 객체를 제거하고, 아직 실행 가능한 객체를 재구성해 메모리를 보다 효율적으로 사용한다.
 
-### 2.1 자바의 가비지 컬렉션
-\\<!-- https://dev.java/learn/jvm/tool/garbage-collection/java-specifics/ -->
-  
+### 2.1 자바의 가비지 컬렉션 종류
+
+HotSpot JVM(Java Virtual Machine)은 가비지 컬렉터를 가지고 있으며, 그 중 어떤 가비지 컬렉터 구현체를 사용할지는 사용 가능한 하드웨어 리소스와 응용 프로그램의
+성능 요구 사항에 따라 결정된다. 가비지 컬렉터 구현체의 종류를 보면,   
+
+- **Serial Garbage Collector**: 단일 스레드에서 모든 가비지 컬렉션을 실행한다. 일시 중지 시간이 길지만, 리소스 사용이 적어 싱글 프로세서에서 가장
+  사용하기 좋다.
+- **perallel Garbage Collector**: 직렬 가비지 컬렉터(Serial Garbage Collector)와 다중 스레드를 통해 작업을 수행할 수 있다.
+- **Concurrent Mark Sweep(CMS) Garbage Collector**: JDK9에서 사용이 중지되고, JDK14에서 제거된 구현체. 어플리케이션이 수행되는 동안에 가비지 컬렉터를 작동하여 가비지 컬렉션의
+  중지 시간을 줄였다.
+- **Garbage First (G1) Garbage Collector**: JDK9 이후 기본값이 되었다. CMS GC를 대체한 향상된 가비지 컬렉터. 많은 양의 메모리에 엑세스하는 멀티 프로세서에 적합하다.
+- **ZGC**: JDK11에서 실험적으로 등장하였고, JDK15에서 제공됐다. 멀티 테라바이트 힙(Multi-retabyte heaps)을 가지는 어플리케이션에 확장 가능한 초저 지연(Ultra-low latency) GC이다.
+
+### 2.2 힙 메모리(Heap Memory)
+힙 메모리는 JVM에서 할당하여 제어하는 시스템 메모리이다. JVM이 사용 가능한 힙 메모리의 크기는 -Xms<value> 및 -Xmx<value> 인수로 제어된다. -Xms<value>는 초기 힙 크기 및 최소 힙 크기를
+설정하고, -Xmx<value>는 최대 힙 크기를 설정한다. 예를 들면,
+
+```
+java -Xms512m Main
+java -Xmx2g Main
+```
+위의 코드를 명령 프롬프트에 실행하면 사용하면 JVM에게 초기 힙 크기를 512MB로 설정하고, 최대 힙 크기를 2GB로 설정하도록 지시한다. 만약 실제로 명령 프롬프트에서 실행해보았다면,
+``` java Main ```을 통해 기본값으로 되돌릴 수 있는 것 같다.   
+만약 힙 메모리가 가득 찬 상태에서 새로운 객체를 할당하려고 할 때, JVM은 ```java.lang.OutOfMemoryError``` 예외가 발생시킨다.   
+대부분의 자바 가비지 컬렉터 구현체에서 힙 메모리는 객체의 '나이(age)'를 기반으로 영역이 나누어진다. 영역의 수와 유형은 구체적인 구현체에 따라 다르다.
+
+#### 2.2.1 Generational Garbage Collection
+자바의 가비지 컬렉터는 대부분 Generational Garbage Collection이다. 객체가 짧은 수명을 가지는 것을 기반으로 하며, 이에 따라 젋은 세대(young generation)와 오래된 세대(old generation) 두 영역으 힙을 나눈다. 할당 시, 객체는 젋은 세대에서 시작하여 더 이상 도달할 수 없는지 주기적으로 확인한다. 그리고 객체가 가비지 컬렉션 주기를 충분한 시간 살아남는다면, 확인을 덜 하는 오래된 세대로 복사된다.   
+
+Generational Garbage Collector는 제거 대상 객체가 더 많이 포함된 힙의 하위 집합을 스캔하여 CPU 시간을 더욱 생산적으로 사용할 수 있다. CPU는 일시 중지 시간을 줄이거나 처리량을 향상시키거나, 메모리 사용량을 줄이는 데 사용 수 있다.
+
+
+
 
 - - - 
 #### 📖 참고문서
