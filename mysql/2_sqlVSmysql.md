@@ -5,7 +5,7 @@
 ◀️ [이전글. 인덱스가 무엇일까?](https://github.com/kkhs00224/mystudy/blob/main/mysql/1_index.md)
 ▶️
 
-## SQL표준과 MySQL
+## 1. SQL표준과 MySQL
 
 - - -
 #### 📖 참고문서
