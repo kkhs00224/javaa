@@ -69,10 +69,38 @@ java -Xmx2g Main
 #### 2.2.1 Generational Garbage Collection
 자바의 가비지 컬렉터는 대부분 Generational Garbage Collection이다. 객체가 짧은 수명을 가지는 것을 기반으로 하며, 이에 따라 젋은 세대(young generation)와 오래된 세대(old generation) 두 영역으 힙을 나눈다. 할당 시, 객체는 젋은 세대에서 시작하여 더 이상 도달할 수 없는지 주기적으로 확인한다. 그리고 객체가 가비지 컬렉션 주기를 충분한 시간 살아남는다면, 확인을 덜 하는 오래된 세대로 복사된다.   
 
-Generational Garbage Collector는 제거 대상 객체가 더 많이 포함된 힙의 하위 집합을 스캔하여 CPU 시간을 더욱 생산적으로 사용할 수 있다. CPU는 일시 중지 시간을 줄이거나 처리량을 향상시키거나, 메모리 사용량을 줄이는 데 사용 수 있다.
+Generational Garbage Collector는 제거 대상 객체가 더 많이 포함된 힙의 하위 집합을 스캔하여 CPU 시간을 더욱 생산적으로 사용할 수 있다. CPU는 일시 중지 시간을 줄이거나 처리량을 향상시키거나, 메모리 사용량을 줄이는 데 사용 수 있다.   
 
+#### 2.2.2 Generational Garbage Collection의 공간 구분
+세대에 따라 구분한 힙 메모리 공간을 더욱 자세히 보자.
 
+- **Young Space** - 새롭게 할당된 객체가 포함되는 영역(region)이며, 이 영역은 더 세분화되어 구분된다.
+  - **Eden Space** - 할당 시, 객체는 힙의 Eden 영역에 저장된다.
+  - **Survivor Spaces** - GC의 주기(cycle)에서 살아남은 객체는 Suvivor 영역으로 복사된다. Generational Garbage Collector는 보통 여러 개의 "suvivor" 영역이 있어, 생존한 객체를 새로운 suvivor 영역으로 복사하고, 이전에 존재하던 suvivor 영역 전체를 해제한다. 이를 통해 가비지 컬렉터의 효율성을 향상시킨다.
+- **Old Region** - GC 사이클에서 살아남아 충분히 "나이(age)"를 먹은 객체들은 old 영역으로 복사된다. 이런 구조를 통해 가비지 컬렉터는 도달할 수 없는 객체를 스캔하는 경우가 거의 없다.
+- **Permanent/Metaspace Region** - 마지막(final) 영역은 permanent 또는 metaspace 영역이다. 이곳에 저장된 객체는 일반적으로 JVM의 메타데이터, 핵심 시스템 클래스 그리고 JVM 수명 전체에 걸쳐 존재하는 기타 데이터이다.
 
+### 2.3 가비지 컬렉션 프로세스(Garbage Collection Process)
+가비지 컬렉터는 세 가지의 단계(mark, sweep, compaction)로 구성되어 있으며 각 단계에는 고유한 책임이 있다.
+
+- **Mark**   
+  객체 생성 시, VM에 의해 1 bit의 마킹 값을 할당하고, 이 값은 초기에 false(0)로 설정된다. 마킹 값을 사용해 객체가 도달 가능한지 여부를 표시한다. 그리고 가비지 수집이 시작되면, 컬렉터는 객체 그래프를 탐색하고 도달할 수 있는 모든 객체를 true(1)로 표시한다.   
+   가비지 컬렉터는 개별 객체를 스캔하지 않고, "루트(root)" 객체에서 시작한다. 루트 객체는 예를 들면, 지역 변수(local variables), 정적 클래스 필드(static class fields), 활성 자바 스레드(active Java threads), JNI 참조가 있다.
+
+- **Sweep**   
+  Sweep 단계에서는 현재 표시 비트가 false(0)인 도달할 수 없는 객체가 모두 제거된다.
+
+- **Compaction**
+  마지막 단계. Eden 영역이나 사용 중인 Suvivor 영역에 있는 살아있는(마킹값이 1,true) 객체는 빈 Survivor 영역으로 이동하거나 복사된다. Survivor 영역의 객체가 충분한 임기를 얻은 경우, Old 영역으로 이동하거나 복사된다.
+
+- **Garbage Collection Pause**
+  가비지 컬렉션 중에는 JVM 내에서 일부 또는 모든 처리가 일시 중지되는 경우가 있다. 이를 Stop-the-World 이벤트라고 한다. 힙 메모리에 저장된 객체는 스레드에 안전하지 않기 때문에, 가비지 컬렉션 진행 중에 객체가 사용되는지 확인, 삭제, 이동하거나 복사하는 동안 JVM이 일시 정지되어 오류가 발생하지 않도록 하기 위함이다.   
+  JDK Flight Recorder(JFR) 및 Visual VM과 같은 도구를 사용하여 가비지 컬렉션의 일시 중지 빈도와 지속 시간을 모니터링 할수 있다. 모니터링을 하고 JVM 인수를 통해 조정하는 것이 어플리케이션 성능을 개선하는 핵심 방법이 될 수 있다.
+
+- **Types of Garbage Collections(가비지 컬렉션의 유형)**
+  힙 메모리의 영역이 구분되는 것처럼, 가비지 컬렉션의 유형도 존재한다.
+  - **Minor** - 오직 힙 메모리의 Young 영역만 스캔한다. Minor GC는 매우 자주 발생하여 매우 낮은 일시 중지 시간을 가진다.
+  - **Major** - Young 영역과 Old 영역을 둘다 스캔한다. Minor GC보다 덜 발생하고, 힙 메모리의 임계값 백분율이 사용되는 것과 같이 VM 내에서 구체적인 조건이 트리거가 되는 경우에 발생한다.
 
 - - - 
 #### 📖 참고문서
