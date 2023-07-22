@@ -10,4 +10,5 @@
 
 
 ## MySQL
-- [1.인덱스\(Index\)](https://github.com/kkhs00224/mystudy/blob/main/mysql/1_index.md)
+- [1. 인덱스\(Index\)란 무엇일까](https://github.com/kkhs00224/mystudy/blob/main/mysql/1_index.md)
+- [2. 표준 SQL과 MySQL의 차이점](https://github.com/kkhs00224/mystudy/blob/main/mysql/2_sqlVSmysql.md)
