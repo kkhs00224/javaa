@@ -100,7 +100,133 @@ UPDATE t1 SET col1 = col1 + 1, col2 = col1;
 위의 구문에서 col2를 col1값이 아닌, col1+1로 업데이트된 col1값으로 설정한다. 그렇기에 col1과 col2는 동일한 값을 가지게 되는데, 이런 동작은 표준 SQL과 다른다.
 
 ### 2.2 FOREIGN KEY 제약의 차이점 (FOREIGN KEY Constraint Differences)
+외래키의 제약 조건의 구현이 표준 SQL에서 다음과 같은 차이가 있다.   
 
+- InnoDB 엔진에서 동일한 외래키 값을 가진 상위 테이블에 여러 행이 있는 경우, 동일한 키값을 가진 다른 상위 행이 존재하지 않는 것처럼 참조키 검사를 수행한다. 예를 들면 외래키의 제약 조건을 ```RESTRICT``` 유형으로 정의하고 부모 행이 여러 개인 자식 행이 있는 경우, 부모 행 삭제를 허용하지 않는다.
+  ```mysql
+  CREATE TABLE product(
+     category INT NOT NULL,
+     id INT NOT NULL,
+     price DECIMAL,
+  
+     PRIMARY KEY(category, id)
+  ) ENGINE=INNODB;
+  CREATE TABLE product_order (
+    no INT NOT NULL AUTO_INCREMENT,
+    product_category INT NOT NULL,
+    product_id INT NOT NULL,
+    customer_id INT NOT NULL,
+
+    PRIMARY KEY(no),
+    FOREIGN KEY (product_category, product_id)
+      REFERENCES product(category, id)
+      ON UPDATE CASCADE ON DELETE RESTRICT
+   )   ENGINE=INNODB;
+  INSERT INTO product (category, id, price) VALUES(001, 110011, 3000);
+  INSERT INTO product_order (product_category, product_id,customer_id) VALUES(001, 110011, 1);
+  DELETE FROM product WHERE category=001;
+  ```
+  위의 예시를 보면 알 수 있듯이 외래키를 ```DELETE RESTRICT```로 설정해두면 부모행은 제약 조건에 의해 삭제가 되지 않는다.
+  
+- ```ON UPDATE CASCADE```나 ```ON UPDATE SET NULL``이 동일한 캐스케이드에서 이전에 업데이트한 테이블을 업데이트하면 ```RESTRICT```처럼 작동한다. 이는 자가 참조가 불가능하다는 것으로, 무한 루프를 방지하기 위한 것이다. ```ON DELETE SET NULL```과 ```ON DELETE CASCADE```는 자가참조가 가능하지만, 캐스케이드 작업은 15번 이상 중첩될 수 없다.
+- SQL 표준에 따르면 기본 동작은 지연 확인(deferred checking)이어야 한다. 이는 제약 조건은 전체 SQL문이 처리된 후에만 확인된다는 것으로, 외래키를 사용하여 자신을 참조하는 행을 삭제할 수 것을 의미한다. 하지만 MySQL는 외래키 제약 조건을 즉시 확인한다. 여러 행을 삽입, 삭제, 업데이트하는 경우 고유 제약 조건과 외래키 제약 조건을 행별로 확인한다. InnoDB는 외래키 확인을 수행할 때 검사해야 하는 자식이나 부모 레코드에 공유된 행 수준의 잠금을 설정한다.
+- InnoDB를 비롯한 모든 스토리지 엔진은 참조 무결성 제역 조건의 정의에 사용되는 ```MATCH```절을 인식하거나 강제하지 않는다. ```MATCH```절 사용은 지정된 효과를 가지지 않으며, ```ON DELETE```나 ```ON UPDATE```절이 무시되도록 한다. MATCH 옵션은 MySQL에서 다른 효과를 가지지 않으며, 사실상 ```MATCH SIMPLE```의 시멘틱을 항상 적용하여 외래키가 모두 또는 일부가 NULL일 수 있다. 이 경우 자식 테이블의 외래키를 포함하는 행은 참조된 부모 테이블의 어떤 행과도 일치하지 않더라도 삽입할 수 있다.   
+  표준 SQL의 경우엔 ```MATCH```절은 참조된 테이블의 기본키와 비교할 때 복합 외래키의 NULL값을 처리하는 방법을 제어한다. ```MATCH FULL```은 모든 외래키 열이 NULL이면 참조된 테이블에서 일치하는 행이 필요하지 않고, ```MATCH SIMPLE```은 외래키 중 하나가 NULL이면 참조된 테이블에서 일치하는 행이 필요하지 않으며, ```MATCH PARTIAL```은 아직 구현되지 않았다고 한다.
+- MySQL은 성능상의 이유로 참조된 열이 인덱싱되어 있어야 하지만, 참조된 열이 ```UNIQUE``` 또는 ```NOT NULL```로 강제되지 않고, NULL이고 인덱스가 없는 경우에도 참조할 수 있다.
+  외래키가 NULL값을 포함하는 비고유 키, 또는 NULL값을 포함하는 키에 대한 처리는 UPDATE와 DELETE CASCADE 같은 작업에 명확하게 정의되어 있지 않다. UNIQUE(기본키도 포함)와 NOT NULL키만 참조하는 외래키를 사용하는 것이 좋다.
+- MyISAM 스토리지 엔진일 경우, MySQL 서버는 외래키 사양을 구문 분석(parses)하고 무시한다.
+- MySQL은 표준 SQL에 정의된 "inline REFERENCES specifications"를 구문 분석(parses)하지만 무시한다. FOREIGN KEY로 지정된 경우에만 ```REFERENCES```절을 허용한다.
+- FOREIGN KEY가 아닌 경우에 ```REFERENCES tbl_name(col_name)절을 사용하여 열을 정의하면 실제로 효과가 없으며, 현재 정의하고 있는 열의 참조 의도에 대한 메모 또는 주석 정도로만 사용된다. 그렇기에 이 구문을 사용할 때 다음 사항을 인지하는 것이 중요하다.
+  - MySQL은 col_name이 tbl_name에 실제로 존재하는지 또는 tbl_name 자체가 존재하는지 확인하지 않는다.
+  - tbl_name에 대해 ```ON DELETE```나 ```ON UPDATE``` 동작과 같은 수행된 작업에 대한 응답으로 행을 변경, 삭제하는 등의 작업을 수행하지 않는다.(작성할 수는 있지만 무시된다.)
+  - 이 구문은 열을 생성하지만, 인덱스나 키를 생성하지는 않는다.
+      ```mysql
+      CREATE TABLE person (
+          id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          name CHAR(60) NOT NULL,
+          PRIMARY KEY (id)
+      );
+      
+      CREATE TABLE shirt (
+          id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          style ENUM('t-shirt', 'polo', 'dress') NOT NULL,
+          color ENUM('red', 'blue', 'orange', 'white', 'black') NOT NULL,
+          owner SMALLINT UNSIGNED NOT NULL REFERENCES person(id),
+          PRIMARY KEY (id)
+      );
+      SHOW CREATE TABLE shirt;
+      +-------+-----------------------------------------------------------------------------+
+      | Table | Create Table                                                                |
+      +-------+-----------------------------------------------------------------------------+
+      | shirt | CREATE TABLE `shirt` (                                                      |
+      | `id` smallint unsigned NOT NULL AUTO_INCREMENT,                                     |
+      | `style` enum('t-shirt','polo','dress') NOT NULL,                                    |
+      | `color` enum('red','blue','orange','white','black') NOT NULL,                       |  
+      | `owner` smallint unsigned NOT NULL,                                                 |
+      | PRIMARY KEY (`id`)                                                                  |
+      |   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci                |
+      +-------+-----------------------------------------------------------------------------+
+
+      DESCRIBE shirt;
+      +-------+---------------------------------------------+------+-----+---------+----------------+
+      | Field | Type                                        | Null | Key | Default | Extra          |
+      +-------+---------------------------------------------+------+-----+---------+----------------+
+      | id    | smallint unsigned                           | NO   | PRI | NULL    | auto_increment |
+      | style | enum('t-shirt','polo','dress')              | NO   |     | NULL    |                |
+      | color | enum('red','blue','orange','white','black') | NO   |     | NULL    |                |
+      | owner | smallint unsigned                           | NO   |     | NULL    |                |
+      +-------+---------------------------------------------+------+-----+---------+----------------+
+      ```
+    위 예시의 shirt 테이블에 ```REFEREENCES person(id)```를 작성했지만, 이를 확인하기 위한 ```SHOW CREATE TABLE```과 ```DESCRIBE```에서 모두 REFERENCES의 정보를 찾아볼 수 없다.
+
+### 2.3 '--'로 시작하는 주석
+표준 SQL은 주석을 쓸 때 /\*comment\*/ 구문을 사용하고 있으며, MySQL도 이 구문을 지원하고 있다.   
+또한, 표준 SQL은 시작 주석 시퀀스로(start-comment sequence)로 "--"를 사용하고, MySQL 서버에선 "#"를 시작 주석 문자로 사용한다.   
+
+MySQL에서의 "--" 주석의 경우에는 한 칸 띄운 후에 사용하는 것이 필요하다. 아래의 예시를 보자.
+```mysql
+SET @count = 0;
+SELECT @count;
+SELECT @count--1;
+SELECT @count --1;
+```
+
+```@count```를 0으로 할당한 뒤, 아래의 SELECT 문에 표준 SQL의 주석 표현식인 "--"을 사용했다. 과연 결과는 어떻게 나왔을까? 각각,
+
+```mysql
++--------+
+| @count |
++--------+
+|      0 |
++--------+
++-----------+
+| @count--1 |
++-----------+
+|         1 |
++-----------+
++------------+
+| @count --1 |
++------------+
+|          1 |
++------------+
+```
+다음과 같이 주석으로 처리되지 않고 1이 더해져서 출력되는 것을 볼 수 있다. 그리고 이번에는 "--" 뒤에 한 칸 띄운 뒤에 출력을 해보자.
+```mysql
+SELECT @count-- 1;
++--------+
+| @count |
++--------+
+|      0 |
++--------+
+
+SELECT @count -- 1;
++--------+
+| @count |
++--------+
+|      0 |
++--------+
+```
+나만 그런 것인지 엔터 후 세미콜론을 한 번 더 붙여준 뒤에야 결과가 출력되었는데, 아무튼 1이 모두 주석으로 처리되고 ```@count```가 주석처리되어 원래 가지고 있던 값인 0으로 출력되는 것을 볼 수 있다!
 
 - - -
 #### 📖 참고문서
