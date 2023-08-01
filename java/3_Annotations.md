@@ -151,6 +151,23 @@ import java.lang.annotation.Documented;
 ```
 
 ## 4. 사전 정의 어노테이션 타입(Predefined Annotation Types)
+자바에서 미리 정의된 어노테이션 타입으로는 java.lang에 정의된 ```@Deperecated```, ```@Override```, ```@SuppressWarnings```이 있다.
+
+- @Deprecated
+  ```@Deprecated``` 어노테이션은 더 이상 사용하면 안 되거나, deprecated로 표시된 요소(element)를 나타낸다. 컴파일러는 프로그램에서
+  ```@Deprecated``` 어노테이션을 가진 메소드, 클래스, 필드를 사용할 때마다 경고를 만들어낸다. 요소(element)가 더 이상 사용되지 않을 때(deprecated),  Javadoc의 ```@deprecated``` 태그를 사용해 문서화 해야 한다.
+  아래 예시에서 Javadoc 주석(comment)과 어노테이션이 같이 쓰인 것은 두 개가 개념적으로 관련되어 있기 때문이다. 또한, Javadoc 태그에서는 소문자 d로 시작되었고, 어노테이션에서는 대문자 D로 시작된 것을 알아둬야 한다.
+  ```java
+  // Javadoc comment follows
+  /**
+   * @deprecated
+   * explanation of why it was deprecated
+   */
+  @Deprecated
+  static void deprecatedMethod() { ... }
+  ```
+  자바 SE 9에서 ```forRemoval``` 속성이 ```@Deprecated``` 어노테이션에 추가되었다. forRemoval은 해당 어노테이션이 달린 요소가 향후 버전에서 제거될지 여부를 나타낸다. 기본값은 false이다.
+
 
 
 - - - 
